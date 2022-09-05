@@ -101,7 +101,7 @@ async def create_song(file: UploadFile, sess: Session = Depends(get_session)):
         content = await file.read()
         await outfile.write(content)
 
-    song_uri = f"files://{song_path}"
+    song_uri = f"file://{song_path}"
 
     db_song.uri = song_uri
     sess.add(db_song)
