@@ -24,6 +24,13 @@ class Playlist(PlaylistBase, table=True):
         back_populates="playlists", link_model=PlaylistSong
     )
 
+    # When assigned playlist or song is deleted, CardAssignment entry should
+    # also be deleted.
+    # Ref: https://github.com/tiangolo/sqlmodel/issues/213#issuecomment-1133170226
+    assigned_cards: List["CardAssignment"] = Relationship(
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"}
+    )
+
 
 class PlaylistCreate(PlaylistBase):
     pass
@@ -40,6 +47,10 @@ class Song(SongBase, table=True):
         back_populates="songs", link_model=PlaylistSong
     )
 
+    assigned_cards: List["CardAssignment"] = Relationship(
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"}
+    )
+
 
 class SongCreate(SongBase):
     pass
@@ -54,12 +65,9 @@ class CardAssignment(SQLModel, table=True):
     """One card can have either `playlist_id`, or `song_id`, not both."""
 
     card_id: str = Field(default=None, primary_key=True)
-    playlist_id: Optional[int] = Field(
-        default=None, foreign_key="playlist.id", primary_key=True
-    )
-    song_id: Optional[int] = Field(
-        default=None, foreign_key="song.id", primary_key=True
-    )
+
+    playlist_id: Optional[int] = Field(default=None, foreign_key="playlist.id")
+    song_id: Optional[int] = Field(default=None, foreign_key="song.id")
 
 
 class ApiTags(Enum):
