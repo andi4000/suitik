@@ -3,7 +3,7 @@ import logging
 
 import requests
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class MopidyClient:

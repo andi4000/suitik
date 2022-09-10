@@ -28,6 +28,8 @@ class SuitikDispatcher:
         self._rfid_reader = None
         self._client = None
 
+        self._media_manager_url = "http://localhost:8000"
+
         self._rpc_url = "http://localhost:6680/mopidy/rpc"
         if rpc_url is not None:
             self._rpc_url = rpc_url
@@ -57,6 +59,28 @@ class SuitikDispatcher:
 
         logging.info("Mopidy connection OK.")
 
+    def _get_songs_from_card(self, card_id: str):
+        url = f"{self._media_manager_url}/cards/{card_id}/songs"
+        resp = requests.get(url)
+
+        songs = []
+        if resp.status_code == 200:
+            songs = [el["uri"] for el in resp.json()]
+
+        return songs
+
+    def _process_card_id(self, card_id: str):
+        songs = self._get_songs_from_card(card_id)
+        if songs:
+            logging.info("Got songs from card, sending to mopidy")
+            logging.debug("Songs from card: %s", songs)
+            self._client.stop()
+            self._client.clear_tracks()
+            self._client.add_tracks(songs)
+            self._client.play()
+        else:
+            logging.error("Could not find any song for this card.")
+
     def init(self):
         self._init_rfid_reader()
         self._init_mopidy_client()
@@ -65,6 +89,7 @@ class SuitikDispatcher:
         logging.info("Entering main loop..")
         with self._rfid_reader.grab_context():
             card_id = ""
+
             for event in self._rfid_reader.read_loop():
                 if event.type == ecodes.EV_KEY and event.value == KeyEvent.key_up:
                     try:
@@ -72,16 +97,6 @@ class SuitikDispatcher:
                         card_id += str(key)
                     except:
                         # This block will be executed when RFID-Reader sends KEY_ENTER
-                        logging.info("Card ID: %s", card_id)
-                        resp = requests.get(
-                            f"http://localhost:8000/cards/{card_id}/songs"
-                        )
+                        logging.info("Got Card ID: %s", card_id)
+                        self._process_card_id(card_id)
                         card_id = ""
-                        if resp.status_code == 200:
-                            file_uris = [resp.json()[0]["uri"]]
-                            print(file_uris)
-                            self._client.clear_tracks()
-                            self._client.add_tracks(file_uris)
-                            self._client.play()
-                        else:
-                            logging.error("Could not find any song.")
