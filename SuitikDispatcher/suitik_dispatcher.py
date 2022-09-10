@@ -1,7 +1,10 @@
 import sys
 import logging
 
+import requests
 from evdev import InputDevice, list_devices, ecodes, KeyEvent
+
+from mopidy_client import MopidyClient
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,6 +39,8 @@ if not rfid_reader:
     logging.error("Device not found, permission problem?")
     sys.exit(-1)
 
+client = MopidyClient("http://localhost:6680/mopidy/rpc")
+
 with rfid_reader.grab_context():
     card_id = ""
     for event in rfid_reader.read_loop():
@@ -46,4 +51,13 @@ with rfid_reader.grab_context():
             except:
                 # This block will be executed when RFID-Reader sends KEY_ENTER
                 logging.info("Card ID: %s", card_id)
+                resp = requests.get(f"http://localhost:8000/cards/{card_id}/songs")
                 card_id = ""
+                if resp.status_code == 200:
+                    file_uris = [resp.json()[0]["uri"]]
+                    print(file_uris)
+                    client.clear_tracks()
+                    client.add_tracks(file_uris)
+                    client.play()
+                else:
+                    logging.error("Could not find any song.")
