@@ -34,6 +34,13 @@ class MopidyClient:
 
         return resp
 
+    def is_connected(self):
+        try:
+            resp = self.rpc("core.tracklist.get_version")
+            return resp.status_code == 200
+        except requests.ConnectionError:
+            return False
+
     def add_tracks(self, file_uris: List[str]):
         return self.rpc("core.tracklist.add", {"uris": file_uris})
 

@@ -8,5 +8,5 @@ sudo usermod -aG input $USER  # $USER has to be in the input group to be able to
 sudo pip install poetry
 poetry install
 
-poetry run python suitik_dispatcher.py
+poetry run python suitik_dispatcher
 ```
