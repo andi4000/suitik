@@ -3,6 +3,7 @@ import os
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException, Response, UploadFile, status
+from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, SQLModel, create_engine, select
 from pydantic import BaseSettings
 import aiofiles
@@ -60,6 +61,13 @@ class Settings(BaseSettings):
 
 settings = Settings()
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")
