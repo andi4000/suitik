@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<script src="https://unpkg.com/vue@3"></script>
+
+<div id="app">
+<br>
+<br>
+<button @click="readNfcOnce()">read NFC</button>
+
+<div v-if="!isReading">
+    <p>cardId: {{cardId}}</p>
+    <p>serialNumber: {{serialNumber}}</p>
+</div>
+<div v-else>
+    <p>Tap the NFC/RFID Card..</p>
+</div>
+
+<br>
+<p>messages:
+    <ul>
+        <li v-for="msg in messages">{{msg}}</li>
+    </ul>
+
+</p>
+
+</div>
+<script setup>
+    const { createApp } = Vue
+
+    function transformCardId(serialNum) {
+        // Neuftech USB Reader reads the byte in reverse order, hence this.
+        const hexReversed = serialNum.split(':').reverse().join('')
+        const cardId = parseInt(hexReversed, 16).toString()
+        return cardId.padStart(10, '0')
+    }
+
+    createApp({
+        data() {
+            return {
+                cardId: null,
+                serialNumber: null,
+                messages: [],
+                isReading: false
+            }
+        },
+        methods: {
+            // Ref: https://dev.to/krowemoh/a-vue3-tutorial-07-vue-components-without-a-build-system-2p4o
+            async readNfcOnce() {
+                // Ref: https://w3c.github.io/web-nfc/#example-12
+                this.messages.push("entering readNfcOnce")
+                this.isReading = true
+
+                const myReader = new NDEFReader()
+                const ctrl = new AbortController()
+
+                await myReader.scan({ signal: ctrl.signal })
+                myReader.onreading = (event) => {
+                    this.messages.push("incoming scan")
+                    this.serialNumber = event.serialNumber
+                    this.cardId = transformCardId(event.serialNumber)
+                    ctrl.abort()
+                }
+
+                ctrl.signal.onabort = () => {
+                    this.messages.push("done watching")
+                    this.isReading = false
+                }
+
+                setTimeout(() => ctrl.abort(), 5_000)
+            }
+        },
+        mounted() {
+            console.log("mounted")
+        }
+    }).mount('#app')
+</script>
