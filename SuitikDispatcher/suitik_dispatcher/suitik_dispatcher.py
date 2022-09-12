@@ -2,6 +2,7 @@ import sys
 import logging
 
 import requests
+from urllib3.exceptions import InsecureRequestWarning
 from evdev import InputDevice, list_devices, ecodes, KeyEvent
 
 from mopidy_client import MopidyClient
@@ -22,13 +23,16 @@ SCANCODES = {
     11: 0,
 }
 
+# Due to self-signed cert
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+
 
 class SuitikDispatcher:
     def __init__(self, *, rpc_url: str = None):
         self._rfid_reader = None
         self._client = None
 
-        self._media_manager_url = "http://localhost:8000"
+        self._media_manager_url = "https://localhost:10443/api/v1"
 
         self._rpc_url = "http://localhost:6680/mopidy/rpc"
         if rpc_url is not None:
@@ -61,7 +65,7 @@ class SuitikDispatcher:
 
     def _get_songs_from_card(self, card_id: str):
         url = f"{self._media_manager_url}/cards/{card_id}/songs"
-        resp = requests.get(url)
+        resp = requests.get(url, verify=False)
 
         songs = []
         if resp.status_code == 200:

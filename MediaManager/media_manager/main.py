@@ -3,6 +3,7 @@ import os
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException, Response, UploadFile, status
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, SQLModel, create_engine, select
 from pydantic import BaseSettings
@@ -69,8 +70,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+subapp = FastAPI()
+app.mount("/api/v1", subapp)
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
-@app.on_event("startup")
+
+@subapp.on_event("startup")
 def on_startup():
     create_db_and_tables()
 
@@ -78,13 +83,13 @@ def on_startup():
         os.mkdir(settings.files_path_prefix)
 
 
-@app.get("/songs/", response_model=List[SongOut], tags=[ApiTags.SONGS])
+@subapp.get("/songs/", response_model=List[SongOut], tags=[ApiTags.SONGS])
 async def get_songs(sess: Session = Depends(get_session)):
     songs = sess.exec(select(Song)).all()
     return songs
 
 
-@app.post("/songs/", tags=[ApiTags.SONGS])
+@subapp.post("/songs/", tags=[ApiTags.SONGS])
 async def create_song(file: UploadFile, sess: Session = Depends(get_session)):
     song_name, ext = os.path.splitext(file.filename)
 
@@ -119,7 +124,7 @@ async def create_song(file: UploadFile, sess: Session = Depends(get_session)):
     return db_song
 
 
-@app.patch("/songs/{song_id}", response_model=SongOut, tags=[ApiTags.SONGS])
+@subapp.patch("/songs/{song_id}", response_model=SongOut, tags=[ApiTags.SONGS])
 async def change_song(
     song_id: int, song: SongCreate, sess: Session = Depends(get_session)
 ):
@@ -137,7 +142,7 @@ async def change_song(
     return db_song
 
 
-@app.delete("/songs/{song_id}", response_model=SongOut, tags=[ApiTags.SONGS])
+@subapp.delete("/songs/{song_id}", response_model=SongOut, tags=[ApiTags.SONGS])
 async def delete_song(song_id: int, sess: Session = Depends(get_session)):
     db_song = sess.get(Song, song_id)
     if not db_song:
@@ -147,13 +152,13 @@ async def delete_song(song_id: int, sess: Session = Depends(get_session)):
     return db_song
 
 
-@app.get("/playlists/", response_model=List[Playlist], tags=[ApiTags.PLAYLISTS])
+@subapp.get("/playlists/", response_model=List[Playlist], tags=[ApiTags.PLAYLISTS])
 async def get_playlists(sess: Session = Depends(get_session)):
     playlists = sess.exec(select(Playlist)).all()
     return playlists
 
 
-@app.post("/playlists/", response_model=Playlist, tags=[ApiTags.PLAYLISTS])
+@subapp.post("/playlists/", response_model=Playlist, tags=[ApiTags.PLAYLISTS])
 async def create_playlist(
     playlist: PlaylistCreate, sess: Session = Depends(get_session)
 ):
@@ -165,7 +170,7 @@ async def create_playlist(
     return db_playlist
 
 
-@app.patch(
+@subapp.patch(
     "/playlists/{playlist_id}", response_model=Playlist, tags=[ApiTags.PLAYLISTS]
 )
 async def change_playlist(
@@ -185,7 +190,7 @@ async def change_playlist(
     return db_playlist
 
 
-@app.delete(
+@subapp.delete(
     "/playlists/{playlist_id}", response_model=Playlist, tags=[ApiTags.PLAYLISTS]
 )
 async def delete_playlist(playlist_id: int, sess: Session = Depends(get_session)):
@@ -198,7 +203,7 @@ async def delete_playlist(playlist_id: int, sess: Session = Depends(get_session)
 
 
 # TODO: add multiple songs?
-@app.post(
+@subapp.post(
     "/playlists/{playlist_id}/songs", response_model=SongOut, tags=[ApiTags.PLAYLISTS]
 )
 def add_song_to_playlist(
@@ -219,7 +224,7 @@ def add_song_to_playlist(
     return db_song
 
 
-@app.get(
+@subapp.get(
     "/playlists/{playlist_id}/songs",
     response_model=List[SongOut],
     tags=[ApiTags.PLAYLISTS],
@@ -247,7 +252,7 @@ def songs_from_playlist(playlist_id: int, sess: Session) -> List[SongOut]:
     return songs
 
 
-@app.delete(
+@subapp.delete(
     "/playlists/{playlist_id}/songs/{song_id}",
     response_model=SongOut,
     tags=[ApiTags.PLAYLISTS],
@@ -273,7 +278,9 @@ def delete_song_from_playlist(
     return db_song
 
 
-@app.get("/cards/{card_id}/songs", response_model=List[SongOut], tags=[ApiTags.CARDS])
+@subapp.get(
+    "/cards/{card_id}/songs", response_model=List[SongOut], tags=[ApiTags.CARDS]
+)
 async def get_songs_from_card(card_id: str, sess: Session = Depends(get_session)):
     db_card = sess.get(CardAssignment, card_id)
     if not db_card:
@@ -290,7 +297,7 @@ async def get_songs_from_card(card_id: str, sess: Session = Depends(get_session)
         return [db_song]
 
 
-@app.put("/cards", response_model=CardAssignment, tags=[ApiTags.CARDS])
+@subapp.put("/cards", response_model=CardAssignment, tags=[ApiTags.CARDS])
 async def assign_card(
     assignment: CardAssignment, response: Response, sess: Session = Depends(get_session)
 ):
