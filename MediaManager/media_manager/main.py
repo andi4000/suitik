@@ -89,39 +89,49 @@ async def get_songs(sess: Session = Depends(get_session)):
     return songs
 
 
-@subapp.post("/songs/", tags=[ApiTags.SONGS])
-async def create_song(file: UploadFile, sess: Session = Depends(get_session)):
-    song_name, ext = os.path.splitext(file.filename)
+@subapp.post("/songs/", response_model=List[SongOut], tags=[ApiTags.SONGS])
+async def upload_songs(files: List[UploadFile], sess: Session = Depends(get_session)):
+    """Upload multiple songs. Accepts `mp3` files."""
+    for file in files:
+        _, ext = os.path.splitext(file.filename)
 
-    if not ext.lower().endswith("mp3"):
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="only mp3 files are supported",
-        )
+        if not ext.lower().endswith("mp3"):
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail=f"Unsupported file: {file.filename}. No files in this request were processed.",
+            )
 
-    db_song = Song(name=song_name)
-    song_path = None
+    songs = []
+    for file in files:
+        song_name, _ = os.path.splitext(file.filename)
 
-    # write to db to get ID
-    sess.add(db_song)
-    sess.commit()
-    sess.refresh(db_song)
+        db_song = Song(name=song_name)
+        song_path = None
 
-    song_path = f"{settings.files_path_prefix}/{db_song.id:03d}_{file.filename}"
+        # write to db to get ID
+        sess.add(db_song)
+        sess.commit()
+        sess.refresh(db_song)
 
-    # TODO: handle error writing by deleting db entry
-    async with aiofiles.open(song_path, "wb") as outfile:
-        content = await file.read()
-        await outfile.write(content)
+        song_path = f"{settings.files_path_prefix}/{db_song.id:03d}_{file.filename}"
 
-    song_uri = f"file://{song_path}"
+        # TODO: handle error writing by deleting db entry
+        async with aiofiles.open(song_path, "wb") as outfile:
+            content = await file.read()
+            await outfile.write(content)
 
-    db_song.uri = song_uri
-    sess.add(db_song)
-    sess.commit()
-    sess.refresh(db_song)
+        song_uri = f"file://{song_path}"
 
-    return db_song
+        db_song.uri = song_uri
+        sess.add(db_song)
+        sess.commit()
+        sess.refresh(db_song)
+
+        songs.append(db_song)
+
+    # TODO: bug: `print(songs)` shows that only the last element is intact
+    # But somehow fastapi returns the correct response with intact elements
+    return songs
 
 
 @subapp.patch("/songs/{song_id}", response_model=SongOut, tags=[ApiTags.SONGS])
