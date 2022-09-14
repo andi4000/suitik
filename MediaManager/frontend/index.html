@@ -1,75 +1,114 @@
 <!DOCTYPE html>
-<script src="https://unpkg.com/vue@3"></script>
+<html lang="en">
 
-<div id="app">
-<br>
-<br>
-<button @click="readNfcOnce()">read NFC</button>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Suitik Media Manager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+</head>
 
-<div v-if="!isReading">
-    <p>cardId: {{cardId}}</p>
-    <p>serialNumber: {{serialNumber}}</p>
-</div>
-<div v-else>
-    <p>Tap the NFC/RFID Card..</p>
-</div>
+<body>
+  <div id="app" class="container-md">
+    <br>
+    <br>
+    <button @click="readNfcOnce()">read NFC</button>
+    <br>
+    <br>
+    <button @click="getData()">get data</button>
 
-<br>
-<p>messages:
+    <div v-if="!isReading">
+      <p>cardId: {{cardId}}</p>
+      <p>serialNumber: {{serialNumber}}</p>
+    </div>
+    <div v-else>
+      <p>Tap the NFC/RFID Card..</p>
+    </div>
+
+    <br>
+    <p>messages:</p>
     <ul>
-        <li v-for="msg in messages">{{msg}}</li>
+      <li v-for="msg in messages">{{msg}}</li>
     </ul>
 
-</p>
+    </p>
+    <div>
+      <p>Songs:</p>
+      <div>
+        <ul v-if="songs">
+          <li v-for="song in songs" :key="song.id">
+            {{song.name}}
+          </li>
+        </ul>
+      </div>
+    </div>
 
-</div>
+  </div>
+  <script src="https://unpkg.com/vue@3"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-u1OknCvxWvY5kfmNBILK2hRnQC3Pr17a+RTT6rIHI7NnikvbZlHgTPOOmMi466C8"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>
+
 <script setup>
-    const { createApp } = Vue
+  const { createApp } = Vue
 
-    function transformCardId(serialNum) {
-        // Neuftech USB Reader reads the byte in reverse order, hence this.
-        const hexReversed = serialNum.split(':').reverse().join('')
-        const cardId = parseInt(hexReversed, 16).toString()
-        return cardId.padStart(10, '0')
-    }
+  function transformCardId(serialNum) {
+    // Neuftech USB Reader reads the byte in reverse order, hence this.
+    const hexReversed = serialNum.split(':').reverse().join('')
+    const cardId = parseInt(hexReversed, 16).toString()
+    return cardId.padStart(10, '0')
+  }
 
-    createApp({
-        data() {
-            return {
-                cardId: null,
-                serialNumber: null,
-                messages: [],
-                isReading: false
-            }
-        },
-        methods: {
-            // Ref: https://dev.to/krowemoh/a-vue3-tutorial-07-vue-components-without-a-build-system-2p4o
-            async readNfcOnce() {
-                // Ref: https://w3c.github.io/web-nfc/#example-12
-                this.messages.push("entering readNfcOnce")
-                this.isReading = true
+  createApp({
+    data() {
+      return {
+        cardId: null,
+        serialNumber: null,
+        messages: [],
+        isReading: false,
+        songs: null
+      }
+    },
+    methods: {
+      // Ref: https://dev.to/krowemoh/a-vue3-tutorial-07-vue-components-without-a-build-system-2p4o
+      async readNfcOnce() {
+        // Ref: https://w3c.github.io/web-nfc/#example-12
+        this.messages.push("entering readNfcOnce")
+        this.isReading = true
 
-                const myReader = new NDEFReader()
-                const ctrl = new AbortController()
+        const myReader = new NDEFReader()
+        const ctrl = new AbortController()
 
-                await myReader.scan({ signal: ctrl.signal })
-                myReader.onreading = (event) => {
-                    this.messages.push("incoming scan")
-                    this.serialNumber = event.serialNumber
-                    this.cardId = transformCardId(event.serialNumber)
-                    ctrl.abort()
-                }
-
-                ctrl.signal.onabort = () => {
-                    this.messages.push("done watching")
-                    this.isReading = false
-                }
-
-                setTimeout(() => ctrl.abort(), 5_000)
-            }
-        },
-        mounted() {
-            console.log("mounted")
+        await myReader.scan({ signal: ctrl.signal })
+        myReader.onreading = (event) => {
+          this.messages.push("incoming scan")
+          this.serialNumber = event.serialNumber
+          this.cardId = transformCardId(event.serialNumber)
+          ctrl.abort()
         }
-    }).mount('#app')
+
+        ctrl.signal.onabort = () => {
+          this.messages.push("done watching")
+          this.isReading = false
+        }
+
+        setTimeout(() => ctrl.abort(), 5_000)
+      },
+      async getData() {
+        axios
+          .get("https://localhost:10443/api/v1/songs/")
+          .then(resp => {
+            this.songs = resp.data
+          })
+      }
+    },
+    mounted() {
+      console.log("mounted")
+      this.getData()
+    }
+  }).mount('#app')
 </script>
