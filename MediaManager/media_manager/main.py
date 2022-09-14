@@ -75,7 +75,7 @@ app.mount("/api/v1", subapp)
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
 
-@subapp.on_event("startup")
+@app.on_event("startup")
 def on_startup():
     create_db_and_tables()
 
