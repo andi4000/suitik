@@ -39,23 +39,27 @@
       </div>
 
       <div class="container pt-5">
+        <h2>Upload Songs</h2>
         <form ref="uploadFileForm">
-          <h2>Upload Songs</h2>
-          <input
-            type="file"
-            multiple
-            ref="filesToUpload"
-            accept=".mp3"
-            :disabled="isUploading"
-            v-if="!isUploading"
-            @change="uploadFiles($event.target.files); this.$refs.uploadFileForm.reset()"
-          />
-          <div class="spinner-border text-primary" v-if="isUploading"></div>
+          <div class="mb-3">
+            <input
+              type="file"
+              class="form-control"
+              multiple
+              ref="filesToUpload"
+              accept=".mp3"
+              :disabled="isUploading"
+              v-if="!isUploading"
+              @change="uploadFiles($event.target.files); this.$refs.uploadFileForm.reset()"
+            />
+            <div class="spinner-border text-primary" v-if="isUploading"></div>
+          </div>
         </form>
       </div>
 
       <div class="container pt-5">
         <h2>Songs</h2>
+
         <div class="d-flex justify-content-between m-2">
           <div v-if="songs && songs.length">Total songs: {{songs.length}}</div>
           <div>
