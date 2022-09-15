@@ -1,66 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Suitik Media Manager</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT"
+      crossorigin="anonymous"
+    />
+  </head>
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Suitik Media Manager</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
-</head>
+  <body>
+    <div id="app" class="container-md mt-5 border">
+      <div class="container mt-5 border">
+        <h2>NFC Tag Reading</h2>
+        <button class="btn btn-primary" @click="readNfcOnce()">read NFC</button>
+        <div v-if="!isReading">
+          <p>cardId: {{cardId}}</p>
+          <p>serialNumber: {{serialNumber}}</p>
+        </div>
+        <div v-else>
+          <p>Tap the NFC/RFID Card..</p>
+        </div>
+      </div>
 
-<body>
-  <div id="app" class="container-md">
-    <br>
-    <br>
-    <button @click="readNfcOnce()">read NFC</button>
-    <br>
-    <br>
-    <button @click="getData()">get data</button>
-
-    <div v-if="!isReading">
-      <p>cardId: {{cardId}}</p>
-      <p>serialNumber: {{serialNumber}}</p>
-    </div>
-    <div v-else>
-      <p>Tap the NFC/RFID Card..</p>
-    </div>
-
-    <br>
-    <p>messages:</p>
-    <ul>
-      <li v-for="msg in messages">{{msg}}</li>
-    </ul>
-
-    </p>
-    <div>
-      <p>Songs:</p>
-      <div>
-        <ul v-if="songs">
-          <li v-for="song in songs" :key="song.id">
-            {{song.name}}
-          </li>
+      <div class="container pt-5">
+        <h2>Messages</h2>
+        <ul v-if="messages.length">
+          <li v-for="msg in messages">{{msg}}</li>
         </ul>
+        <p v-else>No messages</p>
+      </div>
+
+      <div class="container pt-5">
+        <form ref="uploadFileForm">
+          <h2>Upload Songs</h2>
+          <input
+            type="file"
+            multiple
+            ref="filesToUpload"
+            accept=".mp3"
+            :disabled="isUploading"
+            v-if="!isUploading"
+            @change="uploadFiles($event.target.files); this.$refs.uploadFileForm.reset()"
+          />
+          <div class="spinner-border text-primary" v-if="isUploading"></div>
+        </form>
+      </div>
+
+      <div class="container pt-5">
+        <h2>Songs</h2>
+        <div class="row">
+          <div class="col">
+            <span v-if="songs && songs.length"
+              >Total songs: {{songs.length}}</span
+            >
+          </div>
+          <div class="col">
+            <button class="btn btn-primary" @click="getData()">
+              Fetch Songs
+            </button>
+          </div>
+        </div>
+        <div>
+          <ul v-if="songs">
+            <li v-for="song in songs" :key="song.id">{{song.name}}</li>
+          </ul>
+        </div>
       </div>
     </div>
-
-  </div>
-  <script src="https://unpkg.com/vue@3"></script>
-  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-u1OknCvxWvY5kfmNBILK2hRnQC3Pr17a+RTT6rIHI7NnikvbZlHgTPOOmMi466C8"
-    crossorigin="anonymous"></script>
-</body>
-
+    <script src="https://unpkg.com/vue@3"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-u1OknCvxWvY5kfmNBILK2hRnQC3Pr17a+RTT6rIHI7NnikvbZlHgTPOOmMi466C8"
+      crossorigin="anonymous"
+    ></script>
+  </body>
 </html>
 
 <script setup>
-  const { createApp } = Vue
+  const { createApp } = Vue;
+
+  const httpClient = axios.create({
+    baseURL: "https://localhost:10443/api/v1/",
+    timeout: 2000,
+  });
 
   function transformCardId(serialNum) {
     // Neuftech USB Reader reads the byte in reverse order, hence this.
-    const hexReversed = serialNum.split(':').reverse().join('')
-    const cardId = parseInt(hexReversed, 16).toString()
-    return cardId.padStart(10, '0')
+    const hexReversed = serialNum.split(":").reverse().join("");
+    const cardId = parseInt(hexReversed, 16).toString();
+    return cardId.padStart(10, "0");
   }
 
   createApp({
@@ -70,45 +103,71 @@
         serialNumber: null,
         messages: [],
         isReading: false,
-        songs: null
-      }
+        isUploading: false,
+        songs: null,
+      };
     },
     methods: {
       // Ref: https://dev.to/krowemoh/a-vue3-tutorial-07-vue-components-without-a-build-system-2p4o
       async readNfcOnce() {
         // Ref: https://w3c.github.io/web-nfc/#example-12
-        this.messages.push("entering readNfcOnce")
-        this.isReading = true
+        this.messages.push("entering readNfcOnce");
+        this.isReading = true;
 
-        const myReader = new NDEFReader()
-        const ctrl = new AbortController()
+        const myReader = new NDEFReader();
+        const ctrl = new AbortController();
 
-        await myReader.scan({ signal: ctrl.signal })
+        await myReader.scan({ signal: ctrl.signal });
         myReader.onreading = (event) => {
-          this.messages.push("incoming scan")
-          this.serialNumber = event.serialNumber
-          this.cardId = transformCardId(event.serialNumber)
-          ctrl.abort()
-        }
+          this.messages.push("incoming scan");
+          this.serialNumber = event.serialNumber;
+          this.cardId = transformCardId(event.serialNumber);
+          ctrl.abort();
+        };
 
         ctrl.signal.onabort = () => {
-          this.messages.push("done watching")
-          this.isReading = false
-        }
+          this.messages.push("done watching");
+          this.isReading = false;
+        };
 
-        setTimeout(() => ctrl.abort(), 5_000)
+        setTimeout(() => ctrl.abort(), 5_000);
       },
       async getData() {
-        axios
-          .get("https://localhost:10443/api/v1/songs/")
-          .then(resp => {
-            this.songs = resp.data
+        // Refs:
+        // https://www.digitalocean.com/community/tutorials/how-to-use-vue-js-and-axios-to-display-data-from-an-api
+        // https://axios-http.com/docs/example
+        httpClient.get("/songs/").then((resp) => {
+          this.songs = resp.data;
+        });
+      },
+      async uploadFiles(fileList) {
+        // Refs:
+        // https://www.digitalocean.com/community/tutorials/how-to-handle-file-uploads-in-vue-2
+        if (!fileList.length) return;
+
+        this.isUploading = true;
+
+        formData = new FormData();
+        Array.from(Array(fileList.length).keys()).map((x) => {
+          formData.append("files", fileList[x]);
+        });
+
+        httpClient
+          .post("/songs/", formData)
+          .then((resp) => {
+            console.log("got response: ", resp);
+            this.isUploading = false;
+            this.getData();
           })
-      }
+          .catch((err) => {
+            console.error("error uploading: ", err);
+            this.isUploading = false;
+          });
+      },
     },
     mounted() {
-      console.log("mounted")
-      this.getData()
-    }
-  }).mount('#app')
+      console.log("mounted");
+      this.getData();
+    },
+  }).mount("#app");
 </script>
