@@ -86,6 +86,8 @@
             </div>
           </div>
         </div>
+
+        <!-- Iteration through all songs-->
         <div v-if="songs" class="list-group">
           <div
             v-for="song in songs"
@@ -104,7 +106,14 @@
                 </button>
               </div>
               <div v-else>
-                <button class="btn btn-primary" title="Assign RFID Card">
+                <button
+                  class="btn btn-primary"
+                  title="Assign RFID Card"
+                  data-bs-toggle="modal"
+                  data-bs-target="#assignCardModal"
+                  @click="selectedSong=song"
+                  onclick="document.getElementById('cardIdInput').focus()"
+                >
                   <i class="bi bi-credit-card"></i>
                 </button>
               </div>
@@ -112,7 +121,57 @@
           </div>
         </div>
       </div>
+
+      <!-- Card Assignment Modal -->
+      <div
+        class="modal fade"
+        id="assignCardModal"
+        tabindex="-1"
+        aria-labelledby="assignCardModal"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="assignCardModalLabel">Assign Card</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+
+            <div class="modal-body">
+              <div class="mb-3 row" v-if="selectedSong">
+                <div class="col-sm-2">Name</div>
+                <div class="col-sm-10">{{ selectedSong.name }}</div>
+              </div>
+              <div class="mb-3 row">
+                <label for="cardIdInput" class="col-sm-2 col-form-label"
+                  >Card ID</label
+                >
+                <div class="col-sm-10">
+                  <input type="text" class="form-control" id="cardIdInput" />
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+              <button type="button" class="btn btn-primary">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
     <script src="https://unpkg.com/vue@3"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script
@@ -147,6 +206,7 @@
         isReading: false,
         isUploading: false,
         songs: null,
+        selectedSong: null,
         deleteMode: false,
       };
     },
