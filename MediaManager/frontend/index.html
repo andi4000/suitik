@@ -327,6 +327,8 @@
           });
       },
       async createNewPlaylist(name) {
+        if (!name) return;
+
         httpClient
           .post("/playlists", { name: name })
           .then((resp) => {
@@ -337,6 +339,8 @@
           });
       },
       async deletePlaylist(id) {
+        if (!id) return;
+
         httpClient
           .delete(`/playlists/${id}`)
           .then((resp) => {
