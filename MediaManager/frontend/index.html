@@ -166,11 +166,12 @@
                   >Card ID</label
                 >
                 <div class="col-sm-10">
-                  <input type="text" class="form-control" id="cardIdInput" />
-                </div>
-                <div class="text-danger">
-                  TODO: - if mobile: read NFC instead - autofocus for this text
-                  input
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="cardIdInput"
+                    v-model="cardId"
+                  />
                 </div>
               </div>
             </div>
@@ -181,7 +182,7 @@
                 class="btn btn-primary"
                 :disabled="cardId === null"
                 data-bs-dismiss="modal"
-                @click="if (cardId) assignCardToSong(cardId, selectedSong.id);"
+                @click="assignCardToSong()"
               >
                 Save
               </button>
@@ -313,18 +314,27 @@
             console.error("error deleting: ", err);
           });
       },
-      async assignCardToSong(cardId, songId) {
+      async assignCardToSong() {
+        if (!(this.cardId && this.selectedSong)) return;
+
         httpClient
-          .put("/cards", { card_id: cardId, song_id: songId })
+          .put("/cards", {
+            card_id: this.cardId,
+            song_id: this.selectedSong.id,
+          })
           .then((resp) => {
             console.log("assign card OK: ", resp);
             if (this.isNfcAvailable)
-              this.messages.push(`Saving card ID ${cardId} OK.`);
+              this.messages.push(`Saving card ID ${this.cardId} OK.`);
           })
           .catch((err) => {
             console.error("error assigning card: ", err);
             if (this.isNfcAvailable)
-              this.messages.push(`Saving card ID ${cardId} FAILED.`);
+              this.messages.push(`Saving card ID ${this.cardId} FAILED.`);
+          })
+          .finally(() => {
+            console.log("assign card done");
+            this.cardId = null;
           });
       },
       log(msg) {
@@ -337,6 +347,12 @@
         this.messages.push("NFC available");
       } else {
         this.messages.push("No NFC");
+
+        const assignCardModal = document.getElementById("assignCardModal");
+        const cardIdInput = document.getElementById("cardIdInput");
+        assignCardModal.addEventListener("shown.bs.modal", () => {
+          cardIdInput.focus();
+        });
       }
 
       if (this.fakeNfc) {
