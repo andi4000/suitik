@@ -52,7 +52,7 @@
           <div v-if="songs && songs.length">Total songs: {{songs.length}}</div>
           <div v-else>No Songs</div>
           <div>
-            <button class="btn btn-primary" @click="getData()">
+            <button class="btn btn-primary" @click="getSongs()">
               Fetch Songs
             </button>
           </div>
@@ -182,7 +182,7 @@
                 class="btn btn-primary"
                 :disabled="cardId === null"
                 data-bs-dismiss="modal"
-                @click="assignCardToSong()"
+                @click="assignCardToSelection()"
               >
                 Save
               </button>
@@ -231,6 +231,8 @@
         isUploading: false,
         songs: null,
         selectedSong: null,
+        playlists: null,
+        selectedPlaylist: null,
         deleteMode: false,
         isNfcAvailable: false,
         fakeNfc: false, // turn off for prod
@@ -270,7 +272,7 @@
 
         setTimeout(() => ctrl.abort(), 5_000);
       },
-      async getData() {
+      async getSongs() {
         // Refs:
         // https://www.digitalocean.com/community/tutorials/how-to-use-vue-js-and-axios-to-display-data-from-an-api
         // https://axios-http.com/docs/example
@@ -295,7 +297,7 @@
           .then((resp) => {
             console.log("got response: ", resp);
             this.isUploading = false;
-            this.getData();
+            this.getSongs();
           })
           .catch((err) => {
             console.error("error uploading: ", err);
@@ -314,14 +316,27 @@
             console.error("error deleting: ", err);
           });
       },
-      async assignCardToSong() {
-        if (!(this.cardId && this.selectedSong)) return;
+      async assignCardToSelection() {
+        if (!(this.cardId && (this.selectedSong || this.selectedPlaylist)))
+          return;
 
-        httpClient
-          .put("/cards", {
+        var payload = null;
+        if (this.selectedSong) {
+          payload = {
             card_id: this.cardId,
             song_id: this.selectedSong.id,
-          })
+          };
+          console.log("assigning card to song");
+        } else if (this.selectedPlaylist) {
+          payload = {
+            card_id: this.cardId,
+            playlist_id: this.selectedPlaylist.id,
+          };
+          console.log("assigning card to playlist");
+        }
+
+        httpClient
+          .put("/cards", payload)
           .then((resp) => {
             console.log("assign card OK: ", resp);
             if (this.isNfcAvailable)
@@ -335,6 +350,8 @@
           .finally(() => {
             console.log("assign card done");
             this.cardId = null;
+            this.selectedSong = null;
+            this.selectedPlaylist = null;
           });
       },
       log(msg) {
@@ -360,7 +377,7 @@
         console.warn("Fake NFC mode");
       }
 
-      this.getData();
+      this.getSongs();
     },
   }).mount("#app");
 </script>
