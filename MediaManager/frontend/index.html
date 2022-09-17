@@ -140,7 +140,6 @@
                 <div class="col-sm-2">Card ID</div>
                 <div class="col-sm-5">
                   <span v-if="cardId">{{cardId}}</span>
-                  <span v-else>?</span>
                   <div
                     v-if="isReading"
                     class="spinner-border spinner-border-sm ml-2"
@@ -179,12 +178,13 @@
             <div class="modal-footer">
               <button
                 type="button"
-                class="btn btn-secondary"
+                class="btn btn-primary"
+                :disabled="cardId === null"
                 data-bs-dismiss="modal"
+                @click="if (cardId) assignCardToSong(cardId, selectedSong.id);"
               >
-                Close
+                Save
               </button>
-              <button type="button" class="btn btn-primary">OK</button>
             </div>
           </div>
         </div>
@@ -240,6 +240,7 @@
       async readNfcOnce() {
         // Ref: https://w3c.github.io/web-nfc/#example-12
         this.isReading = true;
+        this.cardId = null;
 
         if (this.fakeNfc) {
           console.log("faking nfc reading..");
@@ -310,6 +311,16 @@
           })
           .catch((err) => {
             console.error("error deleting: ", err);
+          });
+      },
+      async assignCardToSong(cardId, songId) {
+        httpClient
+          .put("/cards", { card_id: cardId, song_id: songId })
+          .then((resp) => {
+            console.log("assign card OK: ", resp);
+          })
+          .catch((err) => {
+            console.error("error assigning card: ", err);
           });
       },
       log(msg) {
