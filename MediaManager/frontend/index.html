@@ -64,7 +64,12 @@
             :key="playlist.id"
             class="list-group-item list-group-item-action"
           >
-            <div class="d-flex justify-content-between">
+            <div
+              class="d-flex justify-content-between"
+              data-bs-target="#playlistSongsModal"
+              data-bs-toggle="modal"
+              @click="selectedPlaylist=playlist; getSongsFromPlaylist(playlist.id)"
+            >
               <div>{{playlist.name}}</div>
               <div v-if="deleteMode">
                 <button
@@ -222,7 +227,7 @@
         </div>
       </div>
 
-      <!-- Card Assignment Modal -->
+      <!-- Card Assignment Modal BEGIN -->
       <div
         class="modal fade"
         id="assignCardModal"
@@ -307,6 +312,63 @@
           </div>
         </div>
       </div>
+      <!-- Card Assignment Modal END -->
+
+      <!-- Playlist Songs Modal BEGIN -->
+      <div
+        class="modal fade"
+        id="playlistSongsModal"
+        tabindex="-1"
+        aria-labelledby="playlistSongsModal"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-dialog-centered">
+          <!-- Content BEGIN -->
+          <div class="modal-content">
+            <!-- Header BEGIN -->
+            <div class="modal-header">
+              <h5 class="modal-title">
+                Songs in
+                <i v-if="selectedPlaylist">{{selectedPlaylist.name}}</i>
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <!-- Header END -->
+            <!-- Body BEGIN -->
+            <div class="modal-body">
+              <!-- Iterate through songs BEGIN -->
+              <div v-if="!songsInPlaylist.length">Playlist is empty.</div>
+              <div
+                v-for="song in songsInPlaylist"
+                :key="song.id"
+                class="list-group-item list-group-item-action"
+              >
+                <div class="d-flex mb-2">
+                  <div class="p-2">{{song.name}}</div>
+                  <div class="ms-auto p-2">
+                    <button
+                      class="btn btn-danger"
+                      title="Delete Song"
+                      @click="deleteSongFromPlaylist(selectedPlaylist.id, song.id)"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <!-- Iterate through songs END -->
+            </div>
+            <!-- Body END -->
+          </div>
+          <!-- Content END -->
+        </div>
+      </div>
+      <!-- Playlist Songs Modal END -->
     </div>
 
     <script src="https://unpkg.com/vue@3"></script>
@@ -349,6 +411,7 @@
         songs: null,
         selectedSong: null,
         playlists: null,
+        songsInPlaylist: [],
         selectedPlaylist: null,
         newPlaylistName: null,
         deleteMode: false,
@@ -445,6 +508,29 @@
           })
           .catch((err) => {
             console.error("Failed to fetch playlists: ", err);
+          });
+      },
+      async getSongsFromPlaylist(playlistId) {
+        httpClient
+          .get(`/playlists/${playlistId}/songs`)
+          .then((resp) => {
+            this.songsInPlaylist = resp.data;
+          })
+          .catch((err) => {
+            console.error("Error fetching songs from playlist: ", err);
+            this.songsInPlaylist = [];
+          });
+      },
+      async deleteSongFromPlaylist(playlistId, songId) {
+        httpClient
+          .delete(`/playlists/${playlistId}/songs/${songId}`)
+          .then((resp) => {
+            this.songsInPlaylist = this.songsInPlaylist.filter((el) => {
+              return el.id !== resp.data.id;
+            });
+          })
+          .catch((err) => {
+            console.error("error deleting song from playlist: ", err);
           });
       },
       async createNewPlaylist(name) {
