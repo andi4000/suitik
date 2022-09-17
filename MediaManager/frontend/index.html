@@ -316,6 +316,38 @@
             console.error("error deleting: ", err);
           });
       },
+      async getPlaylists() {
+        httpClient
+          .get("/playlists")
+          .then((resp) => {
+            this.playlists = resp.data;
+          })
+          .catch((err) => {
+            console.error("Failed to fetch playlists: ", err);
+          });
+      },
+      async createNewPlaylist(name) {
+        httpClient
+          .post("/playlists", { name: name })
+          .then((resp) => {
+            this.getPlaylists();
+          })
+          .catch((err) => {
+            console.error("Failed to create new playlist: ", err);
+          });
+      },
+      async deletePlaylist(id) {
+        httpClient
+          .delete(`/playlists/${id}`)
+          .then((resp) => {
+            this.playlists = this.playlists.filter((el) => {
+              return el.id !== resp.data.id;
+            });
+          })
+          .catch((err) => {
+            console.error("Error while deleting playlist: ", err);
+          });
+      },
       async assignCardToSelection() {
         if (!(this.cardId && (this.selectedSong || this.selectedPlaylist)))
           return;
