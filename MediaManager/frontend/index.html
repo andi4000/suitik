@@ -149,7 +149,7 @@
                   </div>
                 </div>
                 <div class="col-sm-5">
-                  <a
+                  <button
                     href="#"
                     role="button"
                     class="btn btn-primary"
@@ -158,7 +158,7 @@
                     :disabled="isReading"
                   >
                     <span>Read NFC</span>
-                  </a>
+                  </button>
                 </div>
               </div>
               <div v-else class="mb-3 row">
@@ -318,9 +318,13 @@
           .put("/cards", { card_id: cardId, song_id: songId })
           .then((resp) => {
             console.log("assign card OK: ", resp);
+            if (this.isNfcAvailable)
+              this.messages.push(`Saving card ID ${cardId} OK.`);
           })
           .catch((err) => {
             console.error("error assigning card: ", err);
+            if (this.isNfcAvailable)
+              this.messages.push(`Saving card ID ${cardId} FAILED.`);
           });
       },
       log(msg) {
