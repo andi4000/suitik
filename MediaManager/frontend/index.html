@@ -124,57 +124,101 @@
               Fetch Songs
             </button>
           </div>
-          <div class="fs-4 mb-3">
-            <div class="form-check form-switch">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                role="switch"
-                id="flexSwitchDeleteMode"
-                title="Delete Mode"
-                @change="deleteMode=$event.target.checked"
-              />
-              <label
-                class="form-check-label text-danger"
-                for="flexSwitchDeleteMode"
-                ><i class="bi bi-trash text-danger"></i
-              ></label>
-            </div>
-          </div>
         </div>
 
-        <!-- Iteration through all songs-->
         <div v-if="songs" class="list-group">
-          <div
-            v-for="song in songs"
-            :key="song.id"
-            class="list-group-item list-group-item-action"
-          >
-            <div class="d-flex justify-content-between">
-              <div>{{song.name}}</div>
-              <div v-if="deleteMode">
-                <button
-                  class="btn btn-danger"
-                  title="Delete Song"
-                  @click="deleteSong(song.id)"
-                >
-                  <i class="bi bi-trash"></i>
-                </button>
+          <div class="list-group-item">
+            <div class="d-flex mb-3">
+              <div class="p-2">
+                <div class="input-group">
+                  <!-- Playlist selection BEGIN-->
+                  <select
+                    class="form-select"
+                    aria-label="select playlist"
+                    v-model="selectedPlaylistToFill"
+                  >
+                    <option value="-1" selected>Select playlist</option>
+                    <option v-for="playlist in playlists" :value="playlist.id">
+                      {{playlist.name}}
+                    </option>
+                  </select>
+                  <!-- Playlist selection END-->
+                  <button
+                    class="btn btn-primary"
+                    type="button"
+                    :disabled="selectedPlaylistToFill == -1"
+                    @click="sendSelectedSongsToPlaylist()"
+                  >
+                    Send to Playlist
+                  </button>
+                </div>
               </div>
-              <div v-else>
-                <button
-                  class="btn btn-primary"
-                  type="button"
-                  title="Assign RFID Card"
-                  data-bs-toggle="modal"
-                  data-bs-target="#assignCardModal"
-                  @click="selectedSong=song; if (isNfcAvailable) readNfcOnce();"
-                >
-                  <i class="bi bi-credit-card"></i>
-                </button>
+              <div class="ms-auto p-2">
+                <!-- Delete Mode BEGIN -->
+                <div class="form-check form-switch fs-4">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="flexSwitchDeleteMode"
+                    title="Delete Mode"
+                    v-model="deleteMode"
+                  />
+                  <label
+                    class="form-check-label text-danger"
+                    for="flexSwitchDeleteMode"
+                    ><i class="bi bi-trash text-danger"></i
+                  ></label>
+                </div>
+                <!-- Delete Mode END -->
               </div>
             </div>
           </div>
+
+          <!-- Iteration through all songs-->
+          <label
+            v-for="song in songs"
+            :key="song.id"
+            class="form-check-label"
+            :for="'cb-'+song.id"
+          >
+            <div class="list-group-item list-group-item-action">
+              <div class="d-flex mb-2">
+                <div class="p-2">
+                  <input
+                    v-if="selectedPlaylistToFill != -1"
+                    class="form-check-input me-1"
+                    type="checkbox"
+                    :id="'cb-' + song.id"
+                    @change="modifySongSelection($event.target, song.id)"
+                  />
+                </div>
+                <div class="p-2">{{song.name}}</div>
+
+                <div class="ms-auto p-2" v-if="deleteMode">
+                  <button
+                    class="btn btn-danger"
+                    title="Delete Song"
+                    @click="deleteSong(song.id)"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+                <div class="ms-auto p-2" v-else>
+                  <button
+                    class="btn btn-primary"
+                    type="button"
+                    title="Assign RFID Card"
+                    data-bs-toggle="modal"
+                    data-bs-target="#assignCardModal"
+                    @click="selectedSong=song; if (isNfcAvailable) readNfcOnce();"
+                  >
+                    <i class="bi bi-credit-card"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </label>
         </div>
       </div>
 
@@ -308,6 +352,9 @@
         selectedPlaylist: null,
         newPlaylistName: null,
         deleteMode: false,
+        addToPlaylistMode: false,
+        selectedPlaylistToFill: -1,
+        selectedSongsForPlaylist: [],
         isNfcAvailable: false,
         fakeNfc: false, // turn off for prod
       };
@@ -428,6 +475,41 @@
           .catch((err) => {
             console.error("Error while deleting playlist: ", err);
           });
+      },
+      async modifySongSelection(checkbox, songId) {
+        if (checkbox.checked) {
+          this.selectedSongsForPlaylist.push(songId);
+        } else {
+          this.selectedSongsForPlaylist = this.selectedSongsForPlaylist.filter(
+            (el) => {
+              return el !== songId;
+            }
+          );
+        }
+      },
+      async sendSelectedSongsToPlaylist() {
+        if (!this.selectedPlaylistToFill || !this.selectedSongsForPlaylist)
+          return;
+
+        for (const songId of this.selectedSongsForPlaylist) {
+          await httpClient
+            .post(
+              `/playlists/${this.selectedPlaylistToFill}/songs?song_id=${songId}`
+            )
+            .then((resp) => {
+              console.debug(
+                "Song ",
+                songId,
+                " added to playlist ",
+                this.selectedPlaylistToFill
+              );
+            })
+            .catch((err) => {
+              console.error("Error adding song to playlist: ", err);
+            });
+        }
+        this.selectedPlaylistToFill = -1;
+        this.selectedSongsForPlaylist = [];
       },
       async assignCardToSelection() {
         if (!(this.cardId && (this.selectedSong || this.selectedPlaylist)))
