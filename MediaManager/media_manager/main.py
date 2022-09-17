@@ -83,13 +83,13 @@ def on_startup():
         os.mkdir(settings.files_path_prefix)
 
 
-@subapp.get("/songs/", response_model=List[SongOut], tags=[ApiTags.SONGS])
+@subapp.get("/songs", response_model=List[SongOut], tags=[ApiTags.SONGS])
 async def get_songs(sess: Session = Depends(get_session)):
     songs = sess.exec(select(Song)).all()
     return songs
 
 
-@subapp.post("/songs/", response_model=List[SongOut], tags=[ApiTags.SONGS])
+@subapp.post("/songs", response_model=List[SongOut], tags=[ApiTags.SONGS])
 async def upload_songs(files: List[UploadFile], sess: Session = Depends(get_session)):
     """Upload multiple songs. Accepts `mp3` files."""
     for file in files:
@@ -162,13 +162,13 @@ async def delete_song(song_id: int, sess: Session = Depends(get_session)):
     return db_song
 
 
-@subapp.get("/playlists/", response_model=List[Playlist], tags=[ApiTags.PLAYLISTS])
+@subapp.get("/playlists", response_model=List[Playlist], tags=[ApiTags.PLAYLISTS])
 async def get_playlists(sess: Session = Depends(get_session)):
     playlists = sess.exec(select(Playlist)).all()
     return playlists
 
 
-@subapp.post("/playlists/", response_model=Playlist, tags=[ApiTags.PLAYLISTS])
+@subapp.post("/playlists", response_model=Playlist, tags=[ApiTags.PLAYLISTS])
 async def create_playlist(
     playlist: PlaylistCreate, sess: Session = Depends(get_session)
 ):

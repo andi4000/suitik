@@ -276,7 +276,7 @@
         // Refs:
         // https://www.digitalocean.com/community/tutorials/how-to-use-vue-js-and-axios-to-display-data-from-an-api
         // https://axios-http.com/docs/example
-        httpClient.get("/songs/").then((resp) => {
+        httpClient.get("/songs").then((resp) => {
           this.songs = resp.data;
         });
       },
@@ -293,7 +293,7 @@
         });
 
         httpClient
-          .post("/songs/", formData)
+          .post("/songs", formData)
           .then((resp) => {
             console.log("got response: ", resp);
             this.isUploading = false;
