@@ -26,6 +26,74 @@
         <p v-else>No messages</p>
       </div>
 
+      <!-- Section: Playlist -->
+      <div class="container pt-5">
+        <h2>Playlists</h2>
+
+        <!-- Create New Playlist -->
+        <form class="row g-3">
+          <div class="col-auto">
+            <input
+              type="text"
+              class="form-control"
+              v-model="newPlaylistName"
+              placeholder="New Playlist"
+            />
+          </div>
+          <div class="col-auto">
+            <button
+              type="submit"
+              class="btn btn-primary mb-3"
+              :disabled="!newPlaylistName"
+              @click="createNewPlaylist(newPlaylistName)"
+            >
+              Create
+            </button>
+          </div>
+        </form>
+
+        <div v-if="playlists && playlists.length">
+          Total playlists: {{playlists.length}}
+        </div>
+        <div v-else>No Playlists</div>
+
+        <!-- Iterate through all playlists BEGIN -->
+        <div v-if="playlists" class="list-group">
+          <div
+            v-for="playlist in playlists"
+            :key="playlist.id"
+            class="list-group-item list-group-item-action"
+          >
+            <div class="d-flex justify-content-between">
+              <div>{{playlist.name}}</div>
+              <div v-if="deleteMode">
+                <button
+                  class="btn btn-danger"
+                  title="Delete Playlist"
+                  @click="deletePlaylist(playlist.id)"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+              <div v-else>
+                <button
+                  class="btn btn-primary"
+                  type="button"
+                  title="Assign RFID Card"
+                  data-bs-toggle="modal"
+                  data-bs-target="#assignCardModal"
+                  @click="selectedPlaylist=playlist; if (isNfcAvailable) readNfcOnce();"
+                >
+                  <i class="bi bi-credit-card"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Iterate through all playlists END -->
+      </div>
+
+      <!-- Section: Songs -->
       <div class="container pt-5">
         <h2>Upload Songs</h2>
         <form ref="uploadFileForm">
@@ -132,8 +200,13 @@
 
             <div class="modal-body">
               <div class="mb-3 row" v-if="selectedSong">
-                <div class="col-sm-2">Name</div>
+                <div class="col-sm-2">Song Name</div>
                 <div class="col-sm-10">{{ selectedSong.name }}</div>
+              </div>
+
+              <div class="mb-3 row" v-if="selectedPlaylist">
+                <div class="col-sm-2">Playlist Name</div>
+                <div class="col-sm-10">{{ selectedPlaylist.name }}</div>
               </div>
 
               <div class="mb-3 row" v-if="isNfcAvailable">
@@ -233,6 +306,7 @@
         selectedSong: null,
         playlists: null,
         selectedPlaylist: null,
+        newPlaylistName: null,
         deleteMode: false,
         isNfcAvailable: false,
         fakeNfc: false, // turn off for prod
@@ -336,6 +410,9 @@
           })
           .catch((err) => {
             console.error("Failed to create new playlist: ", err);
+          })
+          .finally(() => {
+            this.newPlaylistName = null;
           });
       },
       async deletePlaylist(id) {
@@ -385,10 +462,13 @@
           })
           .finally(() => {
             console.log("assign card done");
-            this.cardId = null;
-            this.selectedSong = null;
-            this.selectedPlaylist = null;
+            this.resetFields();
           });
+      },
+      resetFields() {
+        this.cardId = null;
+        this.selectedSong = null;
+        this.selectedPlaylist = null;
       },
       log(msg) {
         console.log(msg);
@@ -396,17 +476,22 @@
     },
     mounted() {
       this.isNfcAvailable = "NDEFReader" in window;
+      const assignCardModal = document.getElementById("assignCardModal");
+
       if (this.isNfcAvailable) {
         this.messages.push("NFC available");
       } else {
         this.messages.push("No NFC");
 
-        const assignCardModal = document.getElementById("assignCardModal");
         const cardIdInput = document.getElementById("cardIdInput");
         assignCardModal.addEventListener("shown.bs.modal", () => {
           cardIdInput.focus();
         });
       }
+
+      assignCardModal.addEventListener("hidden.bs.modal", () => {
+        this.resetFields();
+      });
 
       if (this.fakeNfc) {
         this.isNfcAvailable = true;
@@ -414,6 +499,7 @@
       }
 
       this.getSongs();
+      this.getPlaylists();
     },
   }).mount("#app");
 </script>
