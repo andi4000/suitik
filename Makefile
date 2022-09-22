@@ -11,8 +11,8 @@ dev-install:  ## Install dev environment
 	@echo "==> Preparing environment"
 	@which pip3 || echo "pip not found, installing.." && sudo apt install -y \
 		python3-pip
-	@source ~/.profile && which poetry || "poetry not found, installing" && \
-		pip3 install poetry
+	@source ~/.profile && which poetry || echo "poetry not found, installing" \
+		&& pip3 install poetry
 	@source ~/.profile && cd MediaManager; poetry install
 	@source ~/.profile && cd SuitikDispatcher; poetry install
 
