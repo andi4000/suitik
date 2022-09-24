@@ -2,3 +2,5 @@ database.db
 */files
 .vscode
 *pem
+poetry.lock
+__pycache__
