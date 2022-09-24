@@ -5,7 +5,7 @@ import requests
 from urllib3.exceptions import InsecureRequestWarning
 from evdev import InputDevice, list_devices, ecodes, KeyEvent
 
-from mopidy_client import MopidyClient
+from .mopidy_client import MopidyClient
 
 logging.basicConfig(level=logging.INFO)
 

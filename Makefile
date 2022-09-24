@@ -39,7 +39,7 @@ dev-run-manager:  ## Run Suitik Media Manager
 
 dev-run-dispatcher:  ## Run Suitik Dispatcher
 	@echo "==> Launching dispatcher"
-	@cd SuitikDispatcher; poetry run python suitik_dispatcher
+	@cd SuitikDispatcher; poetry run suitik_dispatcher
 
 dev-run-mopidy:  ## Run Mopidy
 	@echo "==> Launching mopidy"

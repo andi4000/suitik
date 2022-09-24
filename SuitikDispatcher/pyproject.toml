@@ -4,6 +4,10 @@ version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 license = "MIT"
+packages = [{include = "suitik_dispatcher"}]
+
+[tool.poetry.scripts]
+suitik_dispatcher = "suitik_dispatcher.main:run"
 
 [tool.poetry.dependencies]
 python = "^3.7"
