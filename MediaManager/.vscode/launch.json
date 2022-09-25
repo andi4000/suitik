@@ -11,7 +11,7 @@
             "module": "uvicorn",
             "args": [
                 "--reload",
-                "media_manager.main:app"
+                "media_manager.manager:app"
             ],
             "jinja": true,
             "justMyCode": true

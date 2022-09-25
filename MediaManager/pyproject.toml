@@ -4,6 +4,10 @@ version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 license = "MIT"
+packages= [{include = "media_manager"}]
+
+[tool.poetry.scripts]
+suitik_media_manager = "media_manager.main:run"
 
 [tool.poetry.dependencies]
 python = "^3.7"
