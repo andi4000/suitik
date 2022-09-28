@@ -31,26 +31,25 @@
         <h2>Playlists</h2>
 
         <!-- Create New Playlist -->
-        <form class="row g-3">
-          <div class="col-auto">
-            <input
-              type="text"
-              class="form-control"
-              v-model="newPlaylistName"
-              placeholder="New Playlist"
-            />
-          </div>
-          <div class="col-auto">
-            <button
-              type="submit"
-              class="btn btn-primary mb-3"
-              :disabled="!newPlaylistName"
-              @click="createNewPlaylist(newPlaylistName)"
-            >
-              Create
-            </button>
-          </div>
-        </form>
+        <div class="input-group mb-3">
+          <input
+            type="text"
+            class="form-control"
+            placeholder="New playlist"
+            aria-label="New playlist"
+            aria-describedby="btn-create-playlist"
+            v-model="newPlaylistName"
+          />
+          <button
+            class="btn btn-primary"
+            type="button"
+            id="btn-create-playlist"
+            :disabled="!newPlaylistName"
+            @click="createNewPlaylist(newPlaylistName)"
+          >
+            Create
+          </button>
+        </div>
 
         <div v-if="playlists && playlists.length">
           Total playlists: {{playlists.length}}
