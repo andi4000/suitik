@@ -40,11 +40,16 @@ from media_manager.models import (
 # GET    /cards/{c_id}/songs            # returns array
 
 
-sqlite_file_name = "database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
+class Settings(BaseSettings):
+    working_dir: str = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
+    files_path_prefix: str = working_dir + "/files"
+    sqlite_url: str = "sqlite:///" + working_dir + "/database.db"
+
+
+settings = Settings()
 
 connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, echo=False, connect_args=connect_args)
+engine = create_engine(settings.sqlite_url, echo=False, connect_args=connect_args)
 
 
 def create_db_and_tables():
@@ -56,11 +61,6 @@ def get_session():
         yield session
 
 
-class Settings(BaseSettings):
-    files_path_prefix: str = os.getcwd() + "/files"
-
-
-settings = Settings()
 app = FastAPI()
 
 app.add_middleware(
@@ -72,7 +72,9 @@ app.add_middleware(
 
 subapp = FastAPI()
 app.mount("/api/v1", subapp)
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+
+static_files_path = settings.working_dir + "/frontend"
+app.mount("/", StaticFiles(directory=static_files_path, html=True), name="frontend")
 
 
 @app.on_event("startup")

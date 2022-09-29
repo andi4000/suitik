@@ -28,14 +28,10 @@ def _generate_cert(key_file: str, cert_file: str):
 
 
 def run():
-    loc = os.path.dirname(os.path.realpath(__file__))
-    cwd = os.getcwd()
+    working_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 
-    print(f"script location: {loc}")
-    print(f"cwd: {cwd}")
-
-    ssl_key = f"{cwd}/key.pem"
-    ssl_cert = f"{cwd}/cert.pem"
+    ssl_key = f"{working_dir}/key.pem"
+    ssl_cert = f"{working_dir}/cert.pem"
 
     if not os.path.exists(ssl_key):
         print("SSL Certificate not found, generating..")
