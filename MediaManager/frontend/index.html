@@ -97,6 +97,33 @@
         <!-- Iterate through all playlists END -->
       </div>
 
+      <!-- Section: Special Playback -->
+      <div class="container pt-5">
+        <h2>Special Playback Modes</h2>
+        <div v-if="specialPlaybackModes" class="list-group">
+          <div
+            v-for="specialPlayback in specialPlaybackModes"
+            class="list-group-item list-group-item-action"
+          >
+            <div class="d-flex justify-content-between">
+              <div class="text-capitalize">{{humanize(specialPlayback)}}</div>
+              <div>
+                <button
+                  class="btn btn-primary"
+                  type="button"
+                  title="Assign RFID Card"
+                  data-bs-toggle="modal"
+                  data-bs-target="#assignCardModal"
+                  @click="selectedSpecialPlayback=specialPlayback; if (isNfcAvailable) readNfcOnce();"
+                >
+                  <i class="bi bi-credit-card"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Section: Songs -->
       <div class="container pt-5">
         <h2>Upload Songs</h2>
@@ -257,6 +284,13 @@
                 <div class="col-sm-10">{{ selectedPlaylist.name }}</div>
               </div>
 
+              <div class="mb-3 row" v-if="selectedSpecialPlayback">
+                <div class="col-sm-2">Special Playback</div>
+                <div class="col-sm-10 text-capitalize">
+                  {{ humanize(selectedSpecialPlayback) }}
+                </div>
+              </div>
+
               <div class="mb-3 row" v-if="isNfcAvailable">
                 <div class="col-sm-2">Card ID</div>
                 <div class="col-sm-5">
@@ -409,6 +443,8 @@
         isUploading: false,
         songs: null,
         selectedSong: null,
+        specialPlaybackModes: [],
+        selectedSpecialPlayback: null,
         playlists: null,
         songsInPlaylist: [],
         selectedPlaylist: null,
@@ -497,6 +533,16 @@
           })
           .catch((err) => {
             console.error("error deleting: ", err);
+          });
+      },
+      async getSpecialPlaybacks() {
+        httpClient
+          .get("/specialplaybackmodes")
+          .then((resp) => {
+            this.specialPlaybackModes = resp.data;
+          })
+          .catch((err) => {
+            console.error("Failed to fetch special playback: ", err);
           });
       },
       async getPlaylists() {
@@ -597,8 +643,17 @@
         this.selectedSongsForPlaylist = [];
       },
       async assignCardToSelection() {
-        if (!(this.cardId && (this.selectedSong || this.selectedPlaylist)))
+        if (
+          !(
+            this.cardId &&
+            (this.selectedSong ||
+              this.selectedPlaylist ||
+              this.selectedSpecialPlayback)
+          )
+        ) {
+          console.error("Trying to assign card without selection!");
           return;
+        }
 
         var payload = null;
         if (this.selectedSong) {
@@ -613,6 +668,12 @@
             playlist_id: this.selectedPlaylist.id,
           };
           console.log("assigning card to playlist");
+        } else if (this.selectedSpecialPlayback) {
+          payload = {
+            card_id: this.cardId,
+            special_playback: this.selectedSpecialPlayback,
+          };
+          console.log("assigning card to special playback mode");
         }
 
         httpClient
@@ -636,9 +697,13 @@
         this.cardId = null;
         this.selectedSong = null;
         this.selectedPlaylist = null;
+        this.selectedSpecialPlayback = null;
       },
       log(msg) {
         console.log(msg);
+      },
+      humanize(val) {
+        return val.replaceAll("_", " ");
       },
     },
     mounted() {
@@ -667,6 +732,7 @@
 
       this.getSongs();
       this.getPlaylists();
+      this.getSpecialPlaybacks();
     },
   }).mount("#app");
 </script>
