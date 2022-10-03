@@ -5,6 +5,10 @@ from pydantic import validator
 from sqlmodel import SQLModel, Field, Relationship
 
 
+class SpecialPlaybackMode(str, Enum):
+    SHUFFLE_ALL_ONCE = "shuffle_all_once"
+
+
 class PlaylistSong(SQLModel, table=True):
     """Holds songs in playlist"""
 
@@ -68,6 +72,7 @@ class CardAssignment(SQLModel, table=True):
 
     playlist_id: Optional[int] = Field(default=None, foreign_key="playlist.id")
     song_id: Optional[int] = Field(default=None, foreign_key="song.id")
+    special_playback: Optional[SpecialPlaybackMode] = Field(default=None)
 
     card_id: str = Field(default=None, primary_key=True)
 
@@ -82,3 +87,4 @@ class ApiTags(Enum):
     CARDS = "cards"
     SONGS = "songs"
     PLAYLISTS = "playlists"
+    SPECIAL = "special"

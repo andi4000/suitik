@@ -5,7 +5,7 @@ from typing import List
 from fastapi import Depends, FastAPI, HTTPException, Response, UploadFile, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, SQLModel, create_engine, select, func
 from pydantic import BaseSettings
 import aiofiles
 
@@ -18,6 +18,7 @@ from media_manager.models import (
     Song,
     Playlist,
     PlaylistCreate,
+    SpecialPlaybackMode,
 )
 
 # API Endpoints
@@ -308,6 +309,10 @@ async def get_songs_from_card(card_id: str, sess: Session = Depends(get_session)
 
         return [db_song]
 
+    if db_card.special_playback:
+        randomized_songs = sess.exec(select(Song).order_by(func.random())).all()
+        return randomized_songs
+
 
 @subapp.put("/cards", response_model=CardAssignment, tags=[ApiTags.CARDS])
 async def assign_card(
@@ -342,3 +347,12 @@ async def assign_card(
         sess.refresh(new_assignment)
         response.status_code = 201
         return new_assignment
+
+
+@subapp.get(
+    "/specialplaybackmodes",
+    response_model=List[SpecialPlaybackMode],
+    tags=[ApiTags.SPECIAL],
+)
+def get_special_playback_modes():
+    return [playback for playback in SpecialPlaybackMode]
