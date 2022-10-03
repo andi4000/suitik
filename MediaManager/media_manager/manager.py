@@ -313,14 +313,6 @@ async def get_songs_from_card(card_id: str, sess: Session = Depends(get_session)
 async def assign_card(
     assignment: CardAssignment, response: Response, sess: Session = Depends(get_session)
 ):
-    # TODO: maybe validate in model?
-    if (assignment.playlist_id is None and assignment.song_id is None) or (
-        assignment.playlist_id is not None and assignment.song_id is not None
-    ):
-        raise HTTPException(
-            status_code=400, detail="Card can only trigger either a song or a playlist"
-        )
-
     if assignment.song_id:
         db_song = sess.get(Song, assignment.song_id)
         if not db_song:

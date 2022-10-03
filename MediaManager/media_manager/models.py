@@ -1,5 +1,7 @@
 from enum import Enum
 from typing import List, Optional
+
+from pydantic import validator
 from sqlmodel import SQLModel, Field, Relationship
 
 
@@ -64,10 +66,16 @@ class SongOut(SongBase):
 class CardAssignment(SQLModel, table=True):
     """One card can have either `playlist_id`, or `song_id`, not both."""
 
-    card_id: str = Field(default=None, primary_key=True)
-
     playlist_id: Optional[int] = Field(default=None, foreign_key="playlist.id")
     song_id: Optional[int] = Field(default=None, foreign_key="song.id")
+
+    card_id: str = Field(default=None, primary_key=True)
+
+    @validator("card_id")
+    def card_validator(cls, val, values, **kwargs):
+        if len([k for k, v in values.items() if v is not None]) > 1:
+            raise ValueError("Only one type can be assigned to a card.")
+        return val
 
 
 class ApiTags(Enum):
