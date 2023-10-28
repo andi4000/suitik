@@ -1,5 +1,6 @@
 """Suitik MediaManager API Endpoints"""
 import os
+import random
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException, Response, UploadFile, status
@@ -251,7 +252,7 @@ def get_songs_from_playlist(playlist_id: int, sess: Session = Depends(get_sessio
     return songs_from_playlist(playlist_id, sess)
 
 
-def songs_from_playlist(playlist_id: int, sess: Session) -> List[SongOut]:
+def songs_from_playlist(playlist_id: int, sess: Session, shuffle: bool = False) -> List[SongOut]:
     # TODO: there should be a better way to do this
     result = sess.exec(
         select(PlaylistSong).where(PlaylistSong.playlist_id == playlist_id)
@@ -261,6 +262,9 @@ def songs_from_playlist(playlist_id: int, sess: Session) -> List[SongOut]:
     for res in result:
         song_id = res.song_id
         songs.append(sess.get(Song, song_id))
+
+    if shuffle:
+        random.shuffle(songs)
 
     return songs
 
@@ -300,7 +304,7 @@ async def get_songs_from_card(card_id: str, sess: Session = Depends(get_session)
         raise HTTPException(status_code=404, detail="Card not found")
 
     if db_card.playlist_id:
-        return songs_from_playlist(db_card.playlist_id, sess)
+        return songs_from_playlist(db_card.playlist_id, sess, shuffle=True)
 
     if db_card.song_id:
         db_song = sess.get(Song, db_card.song_id)
