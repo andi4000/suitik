@@ -1,4 +1,5 @@
 """Suitik MediaManager API Endpoints"""
+from datetime import datetime, timedelta
 import os
 from typing import List
 
@@ -16,6 +17,7 @@ from media_manager.models import (
     SongOut,
     SongCreate,
     Song,
+    PendingAssignment,
     Playlist,
     PlaylistCreate,
     SpecialPlaybackMode,
@@ -291,6 +293,68 @@ def delete_song_from_playlist(
     return db_song
 
 
+_pending_assignment = PendingAssignment(expired_on=datetime.now())
+
+
+@subapp.put(
+    "/pending-assignment",
+    response_model=PendingAssignment,
+    tags=[ApiTags.PENDING_ASSIGNMENT],
+)
+async def add_pending_assignment(
+    assignment: CardAssignment,
+    timeout_s: int = 15,
+    sess: Session = Depends(get_session),
+):
+    """Client workflow:
+    - WebUI: PUT /pending-assignment with content of choice, modal opens
+    - WebUI: poll interval 1s GET /pending-assignment until 404 in modal
+    - User: tap card to suitik card reader
+    - Dispatcher: checks if there's pending assignment
+    - Dispatcher: assign card, delete pending-assignment, then play media
+    - WebUI: poll GET /pending-assignment gets 404, modal closes
+    """
+    try:
+        _validate_card_assignment(assignment, sess)
+    except LookupError as err:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(err)
+        ) from err
+
+    _pending_assignment.card_assignment = assignment
+    _pending_assignment.expired_on = datetime.now() + timedelta(seconds=timeout_s)
+
+    return _pending_assignment
+
+
+@subapp.get(
+    "/pending-assignment",
+    response_model=CardAssignment,
+    tags=[ApiTags.PENDING_ASSIGNMENT],
+)
+async def get_pending_assignment():
+    if _pending_assignment.expired_on < datetime.now():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No pending assignment at the moment",
+        )
+
+    return _pending_assignment.card_assignment
+
+
+@subapp.delete(
+    "/pending-assignment",
+    response_model=PendingAssignment,
+    tags=[ApiTags.PENDING_ASSIGNMENT],
+)
+async def delete_pending_assignment():
+    """To be called by the Dispatcher."""
+    _pending_assignment.card_assignment = None
+    _pending_assignment.expired_on = datetime.now()
+
+    return _pending_assignment
+
+
 @subapp.get(
     "/cards/{card_id}/songs", response_model=List[SongOut], tags=[ApiTags.CARDS]
 )
@@ -318,15 +382,12 @@ async def get_songs_from_card(card_id: str, sess: Session = Depends(get_session)
 async def assign_card(
     assignment: CardAssignment, response: Response, sess: Session = Depends(get_session)
 ):
-    if assignment.song_id:
-        db_song = sess.get(Song, assignment.song_id)
-        if not db_song:
-            raise HTTPException(status_code=404, detail="Song not found")
-
-    if assignment.playlist_id:
-        db_playlist = sess.get(Playlist, assignment.playlist_id)
-        if not db_playlist:
-            raise HTTPException(status_code=404, detail="Playlist not found")
+    try:
+        _validate_card_assignment(assignment, sess)
+    except LookupError as err:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(err)
+        ) from err
 
     db_card_assignment = sess.get(CardAssignment, assignment.card_id)
 
@@ -347,6 +408,22 @@ async def assign_card(
         sess.refresh(new_assignment)
         response.status_code = 201
         return new_assignment
+
+
+def _validate_card_assignment(assignment: CardAssignment, sess: Session):
+    """Raises LookupError if requested content does not exists in db.
+    Doing this in pydantic validator is not recommended.
+    Ref: https://github.com/pydantic/pydantic/issues/1227#issuecomment-585723753
+    """
+    if assignment.song_id is not None:
+        db_song = sess.get(Song, assignment.song_id)
+        if not db_song:
+            raise LookupError("Song not found")
+
+    if assignment.playlist_id is not None:
+        db_playlist = sess.get(Playlist, assignment.playlist_id)
+        if not db_playlist:
+            raise LookupError("Playlist not found")
 
 
 @subapp.get(

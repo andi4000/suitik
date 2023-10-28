@@ -74,6 +74,20 @@ class SuitikDispatcher:
         return songs
 
     def _process_card_id(self, card_id: str):
+        url_pending_assignment = f"{self._media_manager_url}/pending-assignment"
+        resp = requests.get(url_pending_assignment)
+
+        if resp.status_code == 200:
+            card_assignment = resp.json()["card_assignment"]
+
+            resp = requests.put(
+                f"{self._media_manager_url}/cards", data=card_assignment
+            )
+            if resp.status_code == 200:
+                requests.delete(url_pending_assignment)
+            else:
+                logging.critical("could not assign card")
+
         songs = self._get_songs_from_card(card_id)
         if songs:
             logging.info("Got songs from card, sending to mopidy")
