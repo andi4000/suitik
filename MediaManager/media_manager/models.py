@@ -7,6 +7,8 @@ from sqlmodel import SQLModel, Field, Relationship
 
 class SpecialPlaybackMode(str, Enum):
     SHUFFLE_ALL_ONCE = "shuffle_all_once"
+    LATEST_10 = "latest_10"
+    LATEST_20 = "latest_20"
 
 
 class PlaylistSong(SQLModel, table=True):

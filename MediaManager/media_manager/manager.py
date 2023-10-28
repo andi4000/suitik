@@ -252,7 +252,9 @@ def get_songs_from_playlist(playlist_id: int, sess: Session = Depends(get_sessio
     return songs_from_playlist(playlist_id, sess)
 
 
-def songs_from_playlist(playlist_id: int, sess: Session, shuffle: bool = False) -> List[SongOut]:
+def songs_from_playlist(
+    playlist_id: int, sess: Session, shuffle: bool = False
+) -> List[SongOut]:
     # TODO: there should be a better way to do this
     result = sess.exec(
         select(PlaylistSong).where(PlaylistSong.playlist_id == playlist_id)
@@ -314,8 +316,23 @@ async def get_songs_from_card(card_id: str, sess: Session = Depends(get_session)
         return [db_song]
 
     if db_card.special_playback:
-        randomized_songs = sess.exec(select(Song).order_by(func.random())).all()
-        return randomized_songs
+        if db_card.special_playback == SpecialPlaybackMode.SHUFFLE_ALL_ONCE:
+            randomized_songs = sess.exec(select(Song).order_by(func.random())).all()
+            return randomized_songs
+        elif db_card.special_playback == SpecialPlaybackMode.LATEST_10:
+            latest_10_songs = sess.exec(
+                select(Song).order_by(Song.id.desc()).limit(10)
+            ).all()
+            random.shuffle(latest_10_songs)
+            return latest_10_songs
+        elif db_card.special_playback == SpecialPlaybackMode.LATEST_20:
+            latest_20_songs = sess.exec(
+                select(Song).order_by(Song.id.desc()).limit(20)
+            ).all()
+            random.shuffle(latest_20_songs)
+            return latest_20_songs
+
+    raise HTTPException(status_code=400)
 
 
 @subapp.put("/cards", response_model=CardAssignment, tags=[ApiTags.CARDS])
