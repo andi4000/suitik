@@ -1,7 +1,8 @@
+from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import validator
+from pydantic import BaseModel, validator
 from sqlmodel import SQLModel, Field, Relationship
 
 
@@ -85,8 +86,14 @@ class CardAssignment(SQLModel, table=True):
         return val
 
 
+class PendingAssignment(BaseModel):
+    card_assignment: Optional[CardAssignment] = None
+    expired_on: datetime = None
+
+
 class ApiTags(Enum):
     CARDS = "cards"
     SONGS = "songs"
     PLAYLISTS = "playlists"
     SPECIAL = "special"
+    PENDING_ASSIGNMENT = "pending assignment"
